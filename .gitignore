@@ -13,6 +13,7 @@
 .project
 .classpath
 .settings
+bin/
 
 # Build outputs
 *.class
