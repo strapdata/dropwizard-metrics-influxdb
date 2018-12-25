@@ -18,11 +18,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.izettle.metrics.influxdb.ElasticsearchReporter;
 import com.izettle.metrics.influxdb.ElasticsearchSender;
-import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
-import com.izettle.metrics.influxdb.InfluxDbTcpSender;
-import com.izettle.metrics.influxdb.InfluxDbUdpSender;
 
 import io.dropwizard.metrics.BaseReporterFactory;
 import io.dropwizard.util.Duration;
@@ -138,7 +136,7 @@ import io.dropwizard.validation.ValidationMethod;
  * </table>
  */
 @JsonTypeName("influxdb")
-public class InfluxDbReporterFactory extends BaseReporterFactory {
+public class ElasticsearchReporterFactory extends BaseReporterFactory {
     @NotEmpty
     private String protocol = "http";
 
@@ -146,10 +144,12 @@ public class InfluxDbReporterFactory extends BaseReporterFactory {
     private String host = "localhost";
 
     @Range(min = 0, max = 49151)
-    private int port = 8086;
+    private int port = 9200;
 
     @NotNull
     private String prefix = "";
+
+    private String pipeline = null;
 
     @NotNull
     private Map<String, String> tags = new HashMap<>();
@@ -177,7 +177,7 @@ public class InfluxDbReporterFactory extends BaseReporterFactory {
     private Duration precision = Duration.minutes(1);
 
     @NotNull
-    private SenderType senderType = SenderType.HTTP;
+    private ElasticsearchSenderType senderType = ElasticsearchSenderType.HTTP;
 
     private boolean groupGauges = true;
 
@@ -265,6 +265,16 @@ public class InfluxDbReporterFactory extends BaseReporterFactory {
     @JsonProperty
     public void setPrefix(String prefix) {
         this.prefix = prefix;
+    }
+
+    @JsonProperty
+    public String getPipeline() {
+        return pipeline;
+    }
+
+    @JsonProperty
+    public void setPipeline(String pipeline) {
+        this.pipeline = pipeline;
     }
 
     @JsonProperty
@@ -380,52 +390,32 @@ public class InfluxDbReporterFactory extends BaseReporterFactory {
     }
 
     @JsonProperty
-    public void setSenderType(SenderType senderType) {
+    public void setElasticsearchSenderType(ElasticsearchSenderType senderType) {
         this.senderType = senderType;
     }
 
     @JsonProperty
-    public SenderType getSenderType() {
+    public ElasticsearchSenderType getElasticsearchSenderType() {
         return senderType;
     }
 
     @Override
     public ScheduledReporter build(MetricRegistry registry) {
         try {
-            InfluxDbReporter.Builder builder = builder(registry);
+            ElasticsearchReporter.Builder builder = builder(registry);
             switch (senderType) {
                 case HTTP:
                     return builder.build(
-                        new InfluxDbHttpSender(
+                        new ElasticsearchSender(
                             protocol,
                             host,
                             port,
                             database,
                             auth,
-                            precision.getUnit(),
                             connectTimeout,
                             readTimeout,
-                            prefix
-                        )
-                    );
-                case TCP:
-                    return builder.build(
-                        new InfluxDbTcpSender(
-                            host,
-                            port,
-                            readTimeout,
-                            database,
-                            prefix
-                        )
-                    );
-                case UDP:
-                    return builder.build(
-                        new InfluxDbUdpSender(
-                            host,
-                            port,
-                            readTimeout,
-                            database,
-                            prefix
+                            prefix,
+                            pipeline
                         )
                     );
                 default:
@@ -467,8 +457,8 @@ public class InfluxDbReporterFactory extends BaseReporterFactory {
     }
 
     @VisibleForTesting
-    protected InfluxDbReporter.Builder builder(MetricRegistry registry) {
-        return InfluxDbReporter.forRegistry(registry)
+    protected ElasticsearchReporter.Builder builder(MetricRegistry registry) {
+        return ElasticsearchReporter.forRegistry(registry)
             .convertDurationsTo(getDurationUnit())
             .convertRatesTo(getRateUnit())
             .includeMeterFields(fields.get("meters"))

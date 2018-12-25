@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
  */
 abstract class InfluxDbBaseSender implements InfluxDbSender {
     static final Charset UTF_8 = StandardCharsets.UTF_8;
-    private final InfluxDbWriteObject influxDbWriteObject;
-    private final InfluxDbWriteObjectSerializer influxDbWriteObjectSerializer;
+    protected final InfluxDbWriteObject influxDbWriteObject;
+    protected final InfluxDbWriteObjectSerializer influxDbWriteObjectSerializer;
 
     InfluxDbBaseSender(final String database, final TimeUnit timePrecision, final String measurementPrefix) {
         this.influxDbWriteObject = new InfluxDbWriteObject(database, timePrecision);
